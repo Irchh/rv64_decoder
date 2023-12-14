@@ -3,6 +3,30 @@ use crate::instruction::Instruction::*;
 use crate::optype::OpType;
 use crate::Register;
 
+fn decode_misc_mem(full_opcode: u32) -> Result<Instruction, String> {
+    match OpType::new_i(full_opcode) {
+        OpType::I { rd, rs1, funct3, imm } => {
+            if rd != Register::Zero || rs1 != Register::Zero {
+                return Err("MISC-MEM error".to_string());
+            }
+            match funct3 {
+                0b000 => {
+                    Err("Fence instruction not implemented".to_string())
+                }
+                0b001 => {
+                    if imm != 0 {
+                        Err("MISC-MEM fence.i error".to_string())
+                    } else {
+                        Ok(FenceI)
+                    }
+                }
+                _ => Err(format!("Invalid MISC-MEM funct3: 0b{funct3:03b}")),
+            }
+        }
+        _ => unreachable!(),
+    }
+}
+
 fn decode_op_imm(full_opcode: u32) -> Result<Instruction, String> {
     match OpType::new_i(full_opcode) {
         OpType::I { rd, rs1, funct3, imm } => {
@@ -138,29 +162,7 @@ pub fn decode(full_opcode: u32) -> Result<Instruction, String> {
                 0b00000 => Err("TODO: Implement LOAD".to_string()),
                 0b00001 => Err("TODO: Implement LOAD-FP".to_string()),
                 0b00010 => Err("TODO: Implement custom-0".to_string()),
-                0b00011 => {
-                    match OpType::new_i(full_opcode) {
-                        OpType::I { rd, rs1, funct3, imm } => {
-                            if rd != Register::Zero || rs1 != Register::Zero {
-                                return Err("MISC-MEM error".to_string());
-                            }
-                            match funct3 {
-                                0b000 => {
-                                    Err("Fence instruction not implemented".to_string())
-                                }
-                                0b001 => {
-                                    if imm != 0 {
-                                        Err("MISC-MEM fence.i error".to_string())
-                                    } else {
-                                        Ok(FenceI)
-                                    }
-                                }
-                                _ => Err(format!("Invalid MISC-MEM funct3: 0b{funct3:03b}")),
-                            }
-                        }
-                        _ => unreachable!(),
-                    }
-                },
+                0b00011 => decode_misc_mem(full_opcode),
                 0b00100 => decode_op_imm(full_opcode),
                 0b00101 => {
                     match OpType::new_auipc(full_opcode) {
