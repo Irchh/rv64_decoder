@@ -6,20 +6,48 @@ use crate::register::Register;
 
 #[derive(Debug, Copy, Clone, PartialEq)]
 pub enum Instruction {
-    Mul{rd: Register, rs1: Register, rs2: Register},
-    Div{rd: Register, rs1: Register, rs2: Register},
     Add{rd: Register, rs1: Register, rs2: Register},
     Sub{rd: Register, rs1: Register, rs2: Register},
+    Sll{rd: Register, rs1: Register, rs2: Register},
+    Slt{rd: Register, rs1: Register, rs2: Register},
+    Sltu{rd: Register, rs1: Register, rs2: Register},
+    Xor{rd: Register, rs1: Register, rs2: Register},
+    Srl{rd: Register, rs1: Register, rs2: Register},
+    Sra{rd: Register, rs1: Register, rs2: Register},
     Or{rd: Register, rs1: Register, rs2: Register},
-    XOr{rd: Register, rs1: Register, rs2: Register},
     And{rd: Register, rs1: Register, rs2: Register},
+
+    Addw{rd: Register, rs1: Register, rs2: Register},
+    Subw{rd: Register, rs1: Register, rs2: Register},
+    Sllw{rd: Register, rs1: Register, rs2: Register},
+    Srlw{rd: Register, rs1: Register, rs2: Register},
+    Sraw{rd: Register, rs1: Register, rs2: Register},
+
+    Mul{rd: Register, rs1: Register, rs2: Register},
+    Mulh{rd: Register, rs1: Register, rs2: Register},
+    Mulhsu{rd: Register, rs1: Register, rs2: Register},
+    Mulhu{rd: Register, rs1: Register, rs2: Register},
+    Div{rd: Register, rs1: Register, rs2: Register},
+    Divu{rd: Register, rs1: Register, rs2: Register},
+    Rem{rd: Register, rs1: Register, rs2: Register},
+    Remu{rd: Register, rs1: Register, rs2: Register},
+
+    Mulw{rd: Register, rs1: Register, rs2: Register},
+    Divw{rd: Register, rs1: Register, rs2: Register},
+    Divuw{rd: Register, rs1: Register, rs2: Register},
+    Remw{rd: Register, rs1: Register, rs2: Register},
+    Remuw{rd: Register, rs1: Register, rs2: Register},
 
 
     Addi{rd: Register, rs1: Register, imm: i64},
-    Slli{rd: Register, rs1: Register, shamt: i64},
-    Srli{rd: Register, rs1: Register, shamt: i64},
+    Slti{rd: Register, rs1: Register, imm: i64},
+    Sltiu{rd: Register, rs1: Register, imm: i64},
+    Xori{rd: Register, rs1: Register, imm: i64},
     Ori{rd: Register, rs1: Register, imm: i64},
     Andi{rd: Register, rs1: Register, imm: i64},
+    Slli{rd: Register, rs1: Register, shamt: u64},
+    Srli{rd: Register, rs1: Register, shamt: u64},
+    Srai{rd: Register, rs1: Register, shamt: u64},
 
     Addiw{rd: Register, rs1: Register, imm: i64},
 
@@ -78,11 +106,16 @@ impl Display for Instruction {
             Add { rd, rs1, rs2 } => write!(f, "add {}, {}, {}", rd, rs1, rs2),
             Sub { rd, rs1, rs2 } => write!(f, "sub {}, {}, {}", rd, rs1, rs2),
             Or { rd, rs1, rs2 } => write!(f, "or {}, {}, {}", rd, rs1, rs2),
-            XOr { rd, rs1, rs2 } => write!(f, "xor {}, {}, {}", rd, rs1, rs2),
+            Xor { rd, rs1, rs2 } => write!(f, "xor {}, {}, {}", rd, rs1, rs2),
             And { rd, rs1, rs2 } => write!(f, "and {}, {}, {}", rd, rs1, rs2),
+            Sll { rd, rs1, rs2 } => write!(f, "sll {}, {}, {}", rd, rs1, rs2),
+            Slt { rd, rs1, rs2 } => write!(f, "slt {}, {}, {}", rd, rs1, rs2),
+            Sltu { rd, rs1, rs2 } => write!(f, "sltu {}, {}, {}", rd, rs1, rs2),
+            Srl { rd, rs1, rs2 } => write!(f, "srl {}, {}, {}", rd, rs1, rs2),
+            Sra { rd, rs1, rs2 } => write!(f, "sra {}, {}, {}", rd, rs1, rs2),
             Addi { rd, rs1, imm } => write!(f, "addi {}, {}, {}", rd, rs1, Num(*imm)),
-            Slli { rd, rs1, shamt } => write!(f, "slli {}, {}, {}", rd, rs1, Num(*shamt)),
-            Srli { rd, rs1, shamt } => write!(f, "srli {}, {}, {}", rd, rs1, Num(*shamt)),
+            Slli { rd, rs1, shamt } => write!(f, "slli {}, {}, {}", rd, rs1, Num(*shamt as i64)),
+            Srli { rd, rs1, shamt } => write!(f, "srli {}, {}, {}", rd, rs1, Num(*shamt as i64)),
             Ori { rd, rs1, imm } => write!(f, "ori {}, {}, {}", rd, rs1, Num(*imm)),
             Andi { rd, rs1, imm } => write!(f, "andi {}, {}, {}", rd, rs1, Num(*imm)),
             Addiw { rd, rs1, imm } => write!(f, "addiw {}, {}, {}", rd, rs1, Num(*imm)),
@@ -123,6 +156,7 @@ impl Display for Instruction {
             Csrrsi { rd, csr, imm } => write!(f, "csrrsi {}, {}, {}", rd, csr, Num(*imm)),
             Csrrci { rd, csr, imm } => write!(f, "csrrci {}, {}, {}", rd, csr, Num(*imm)),
             FenceI => write!(f, "fence.i"),
+            _ => write!(f, "TODO: impl display for {:?}", self)
         };
         let _ = write!(f, "\x1B[0m");
         retval

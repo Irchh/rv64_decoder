@@ -10,10 +10,6 @@ pub use instruction::Instruction;
 pub use register::Register;
 pub use csr::CsrRegister;
 
-pub fn add(left: usize, right: usize) -> usize {
-    left + right
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
