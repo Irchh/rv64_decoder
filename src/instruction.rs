@@ -50,6 +50,9 @@ pub enum Instruction {
     Srai{rd: Register, rs1: Register, shamt: u64},
 
     Addiw{rd: Register, rs1: Register, imm: i64},
+    Slliw{rd: Register, rs1: Register, shamt: u64},
+    Srliw{rd: Register, rs1: Register, shamt: u64},
+    Sraiw{rd: Register, rs1: Register, shamt: u64},
 
     Sb{rs1: Register, rs2: Register, imm: i64},
     Sh{rs1: Register, rs2: Register, imm: i64},

@@ -28,6 +28,21 @@ fn decode_op_imm(full_opcode: u32) -> Result<Instruction, String> {
     }
 }
 
+fn decode_op_imm_32(full_opcode: u32) -> Result<Instruction, String> {
+    let opt_inst = decode_op(full_opcode);
+    if opt_inst.is_ok() {
+        Ok(match opt_inst.unwrap() {
+            Instruction::Addi { rd, rs1, imm } => Instruction::Addiw { rd, rs1, imm, },
+            Instruction::Slli { rd, rs1, shamt } => Instruction::Slliw { rd, rs1, shamt, },
+            Instruction::Srli { rd, rs1, shamt } => Instruction::Srliw { rd, rs1, shamt, },
+            Instruction::Srai { rd, rs1, shamt } => Instruction::Sraiw { rd, rs1, shamt, },
+            _ => return Err("Invalid OP-IMM-32".to_string()),
+        })
+    } else {
+        opt_inst
+    }
+}
+
 fn decode_op(full_opcode: u32) -> Result<Instruction, String> {
     match OpType::new_r(full_opcode) {
         OpType::R { rd, rs1, rs2, funct3, funct7 } => {
@@ -153,7 +168,7 @@ pub fn decode(full_opcode: u32) -> Result<Instruction, String> {
                         _ => unreachable!(),
                     }
                 },
-                0b00110 => Err("TODO: Implement OP-IMM-32".to_string()),
+                0b00110 => decode_op_imm_32(full_opcode),
                 0b00111 => Err("TODO: Implement uhhhhhhhhhhhhhhh 48b".to_string()),
                 0b01000 => Err("TODO: Implement STORE".to_string()),
                 0b01001 => Err("TODO: Implement STORE-FP".to_string()),
