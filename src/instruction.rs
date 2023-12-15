@@ -62,6 +62,9 @@ pub enum Instruction {
     Lb{rd: Register, rs1: Register, imm: i64},
     Lh{rd: Register, rs1: Register, imm: i64},
     Lw{rd: Register, rs1: Register, imm: i64},
+    Lbu{rd: Register, rs1: Register, imm: i64},
+    Lhu{rd: Register, rs1: Register, imm: i64},
+    Lwu{rd: Register, rs1: Register, imm: i64},
     Ld{rd: Register, rs1: Register, imm: i64},
 
     Beq{rs1: Register, rs2: Register, imm: i64},

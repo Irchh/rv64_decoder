@@ -1,7 +1,25 @@
 use crate::instruction::Instruction;
 use crate::instruction::Instruction::*;
 use crate::optype::OpType;
-use crate::Register;
+use crate::{CsrRegister, Register};
+
+fn decode_load(full_opcode: u32) -> Result<Instruction, String> {
+    match OpType::new_load(full_opcode) {
+        OpType::Load { rd, rs1, funct3, imm } => {
+            Ok(match funct3 {
+                0b000 => Instruction::Lb { rd, rs1, imm, },
+                0b001 => Instruction::Lh { rd, rs1, imm, },
+                0b010 => Instruction::Lw { rd, rs1, imm, },
+                0b100 => Instruction::Lbu { rd, rs1, imm, },
+                0b101 => Instruction::Lhu { rd, rs1, imm, },
+                0b110 => Instruction::Lwu { rd, rs1, imm, },
+                0b011 => Instruction::Ld { rd, rs1, imm, },
+                _ => return Err(format!("Invalid LOAD funct3: 0b{funct3:03b}")),
+            })
+        }
+        _ => unreachable!()
+    }
+}
 
 fn decode_misc_mem(full_opcode: u32) -> Result<Instruction, String> {
     match OpType::new_i(full_opcode) {
@@ -153,13 +171,41 @@ fn decode_branch(full_opcode: u32) -> Result<Instruction, String> {
     }
 }
 
+fn decode_system(full_opcode: u32) -> Result<Instruction, String> {
+    match OpType::new_csr(full_opcode) {
+        OpType::Csr { rd, rs1, funct3, csr } => {
+            // Remove sign extension
+            Ok(match funct3 {
+                0b000 => {
+                    if rd != Register::Zero || rs1 != Register::Zero {
+                        return Err("Invalid rd and rs1 for ECALL/EBREAK".to_string())
+                    }
+                    match usize::from(csr) {
+                        0 => Instruction::Ecall,
+                        1 => Instruction::Ebreak,
+                        _ => return Err("Invalid immediate for ECALL/EBREAK".to_string()),
+                    }
+                }
+                0b001 => Instruction::Csrrw { rd, rs1, csr, },
+                0b010 => Instruction::Csrrs { rd, rs1, csr, },
+                0b011 => Instruction::Csrrc { rd, rs1, csr, },
+                0b101 => Instruction::Csrrwi { rd, imm: rs1 as usize as i64, csr, },
+                0b110 => Instruction::Csrrsi { rd, imm: rs1 as usize as i64, csr, },
+                0b111 => Instruction::Csrrci { rd, imm: rs1 as usize as i64, csr, },
+                _ => return Err(format!("Invalid system funct3: 0b{funct3:03b}")),
+            })
+        }
+        _ => unreachable!()
+    }
+}
+
 pub fn decode(full_opcode: u32) -> Result<Instruction, String> {
     let opcode = full_opcode&0x7F;
     match opcode&0b11 {
         0b11 => {
             // RV64G
             match (opcode&0b1111100)>>2 {
-                0b00000 => Err("TODO: Implement LOAD".to_string()),
+                0b00000 => decode_load(full_opcode),
                 0b00001 => Err("TODO: Implement LOAD-FP".to_string()),
                 0b00010 => Err("TODO: Implement custom-0".to_string()),
                 0b00011 => decode_misc_mem(full_opcode),
@@ -192,7 +238,7 @@ pub fn decode(full_opcode: u32) -> Result<Instruction, String> {
                 0b11001 => Err("TODO: Implement JALR".to_string()),
                 0b11010 => Err("TODO: Implement reserved".to_string()),
                 0b11011 => Err("TODO: Implement JAL".to_string()),
-                0b11100 => Err("TODO: Implement SYSTEM".to_string()),
+                0b11100 => decode_system(full_opcode),
                 0b11101 => Err("TODO: Implement reserved".to_string()),
                 0b11110 => Err("TODO: Implement custom-3".to_string()),
                 0b11111 => Err("TODO: Implement uhhhhhhhhhhhhhhh >=80b".to_string()),
@@ -237,9 +283,6 @@ pub fn decode_old(full_opcode: u32) -> Result<Instruction, String> {
                 }
                 _ => Err(format!("Unknown 0b000 R-type funct7: 0b{funct7:07b}"))
             }
-        }
-        OpType::RW { .. } => {
-            Err(format!("Unimplemented optype: {optype:?}"))
         }
         OpType::I { rd, rs1, funct3, imm } => {
             match opcode {
@@ -312,12 +355,6 @@ pub fn decode_old(full_opcode: u32) -> Result<Instruction, String> {
                 0b110 => Ok(Csrrsi { rd, csr, imm: rs1 as usize as i64}),
                 0b111 => Ok(Csrrci { rd, csr, imm: rs1 as usize as i64}),
                 _ => Err(format!("Unknown csr type funct3: 0b{funct3:03b}"))
-            }
-        }
-        OpType::IW { rd, rs1, funct3, imm } => {
-            match funct3 {
-                0b000 => Ok(Addiw {rd, rs1, imm}),
-                _ => Err(format!("Unknown immediate64 type funct3: 0b{funct3:03b}"))
             }
         }
         OpType::S { rs1, rs2, funct3, imm } => {

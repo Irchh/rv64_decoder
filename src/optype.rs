@@ -4,10 +4,8 @@ use crate::register::Register;
 #[derive(Debug)]
 pub(crate) enum OpType {
     R { rd: Register, rs1: Register, rs2: Register, funct3: u8, funct7: u8, },
-    RW { rd: Register, rs1: Register, rs2: Register, funct3: u8, funct7: u8, },
 
     I { rd: Register, rs1: Register, funct3: u8, imm: i64, },
-    IW { rd: Register, rs1: Register, funct3: u8, imm: i64, },
     Load { rd: Register, rs1: Register, funct3: u8, imm: i64, },
     Jalr { rd: Register, rs1: Register, funct3: u8, imm: i64, },
     Csr { rd: Register, rs1: Register, funct3: u8, csr: CsrRegister, },
@@ -30,12 +28,7 @@ impl OpType {
         let rs2 = Register::from(((from >> 20) & 0b1_1111) as usize);
         let funct7 = ((from >> 25) & 0b0111_1111) as u8;
 
-        let opcode = from&0b0111_1111;
-        if opcode == 0x3b {
-            OpType::RW { rd, rs1, rs2, funct3, funct7, }
-        } else {
-            OpType::R { rd, rs1, rs2, funct3, funct7, }
-        }
+        OpType::R { rd, rs1, rs2, funct3, funct7, }
     }
     pub fn new_i(from: u32) -> Self {
         let rd = Register::from(((from >> 7) & 0b1_1111) as usize);
@@ -47,13 +40,7 @@ impl OpType {
         let imm31_12 = if (imm11_0>>11)&1 == 1 { 0xFFFFF } else { 0b0 };
 
         let full_imm = (imm31_12 << 12) | imm11_0;
-        // TODO: Check correctness this
-        let opcode = from&0b0111_1111;
-        if opcode == 0x1b {
-            OpType::IW { rd, rs1, funct3, imm: full_imm as i32 as i64 }
-        } else {
-            OpType::I { rd, rs1, funct3, imm: full_imm as i32 as i64 }
-        }
+        OpType::I { rd, rs1, funct3, imm: full_imm as i32 as i64 }
     }
 
     pub fn new_csr(from: u32) -> Self {
@@ -69,8 +56,7 @@ impl OpType {
         let i = Self::new_i(from);
         // TODO: Check correctness of this
         match i {
-            OpType::I { rd, rs1, funct3, imm } |
-            OpType::IW { rd, rs1, funct3, imm } => {
+            OpType::I { rd, rs1, funct3, imm } => {
                 OpType::Load { rd, rs1, funct3, imm, }
             }
             _ => unreachable!(),
@@ -79,8 +65,7 @@ impl OpType {
     pub fn new_jalr(from: u32) -> Self {
         let i = Self::new_i(from);
         match i {
-            OpType::I { rd, rs1, funct3, imm } |
-            OpType::IW { rd, rs1, funct3, imm } => {
+            OpType::I { rd, rs1, funct3, imm } => {
                 OpType::Jalr { rd, rs1, funct3, imm, }
             }
             _ => unreachable!(),
