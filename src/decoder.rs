@@ -71,7 +71,7 @@ fn decode_op_imm(full_opcode: u32) -> Result<Instruction, String> {
 }
 
 fn decode_op_imm_32(full_opcode: u32) -> Result<Instruction, String> {
-    let opt_inst = decode_op(full_opcode);
+    let opt_inst = decode_op_imm(full_opcode);
     if opt_inst.is_ok() {
         Ok(match opt_inst.unwrap() {
             Instruction::Addi { rd, rs1, imm } => Instruction::Addiw { rd, rs1, imm, },
@@ -131,6 +131,13 @@ fn decode_op(full_opcode: u32) -> Result<Instruction, String> {
     }
 }
 
+fn decode_lui(full_opcode: u32) -> Result<Instruction, String> {
+    match OpType::new_lui(full_opcode) {
+        OpType::Lui { rd, imm } => Ok(Instruction::Lui { rd, uimm: imm }),
+        _ => unreachable!()
+    }
+}
+
 fn decode_op_32(full_opcode: u32) -> Result<Instruction, String> {
     let opt_inst = decode_op(full_opcode);
     if opt_inst.is_ok() {
@@ -168,6 +175,25 @@ fn decode_branch(full_opcode: u32) -> Result<Instruction, String> {
             })
         }
         _ => unreachable!(),
+    }
+}
+
+fn decode_jalr(full_opcode: u32) -> Result<Instruction, String> {
+    match OpType::new_jalr(full_opcode) {
+        OpType::Jalr { rd, rs1, funct3, imm } => {
+            Ok(match funct3 {
+                0b000 => Instruction::Jalr { rd, rs1, imm, },
+                _ => return Err(format!("Invalid jalr funct3: 0b{funct3:03b}")),
+            })
+        }
+        _ => unreachable!()
+    }
+}
+
+fn decode_jal(full_opcode: u32) -> Result<Instruction, String> {
+    match OpType::new_jal(full_opcode) {
+        OpType::Jal { rd, imm } => Ok(Instruction::Jal { rd, imm }),
+        _ => unreachable!()
     }
 }
 
@@ -223,7 +249,7 @@ pub fn decode(full_opcode: u32) -> Result<Instruction, String> {
                 0b01010 => Err("TODO: Implement custom-1".to_string()),
                 0b01011 => Err("TODO: Implement AMO".to_string()),
                 0b01100 => decode_op(full_opcode),
-                0b01101 => Err("TODO: Implement LUI".to_string()),
+                0b01101 => decode_lui(full_opcode),
                 0b01110 => decode_op_32(full_opcode),
                 0b01111 => Err("TODO: Implement uhhhhhhhhhhhhhhh 64b".to_string()),
                 0b10000 => Err("TODO: Implement MADD".to_string()),
@@ -235,9 +261,9 @@ pub fn decode(full_opcode: u32) -> Result<Instruction, String> {
                 0b10110 => Err("TODO: Implement custom-2".to_string()),
                 0b10111 => Err("TODO: Implement uhhhhhhhhhhhhhhh 48b".to_string()),
                 0b11000 => decode_branch(full_opcode),
-                0b11001 => Err("TODO: Implement JALR".to_string()),
+                0b11001 => decode_jalr(full_opcode),
                 0b11010 => Err("TODO: Implement reserved".to_string()),
-                0b11011 => Err("TODO: Implement JAL".to_string()),
+                0b11011 => decode_jal(full_opcode),
                 0b11100 => decode_system(full_opcode),
                 0b11101 => Err("TODO: Implement reserved".to_string()),
                 0b11110 => Err("TODO: Implement custom-3".to_string()),

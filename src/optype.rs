@@ -103,7 +103,7 @@ impl OpType {
     pub fn new_u(from: u32) -> Self {
         let rd = Register::from(((from >> 7) & 0b1_1111) as usize);
         let imm = (from & 0xFFFFF000) as i32 as i64 >> 12;
-        OpType::U { rd, imm, uimm: (from & 0xFFFFF000) as u64 }
+        OpType::U { rd, imm, uimm: (from & 0xFFFFF000) as u64 >> 12 }
     }
     pub fn new_auipc(from: u32) -> Self {
         let i = Self::new_u(from);
