@@ -4,11 +4,20 @@ mod csr;
 mod decoder;
 mod optype;
 mod opcode;
+mod compressed;
 
 pub use decoder::decode;
 pub use instruction::Instruction;
 pub use register::Register;
 pub use csr::CsrRegister;
+
+pub fn opcode_size(full_opcode: u32) -> usize {
+    if full_opcode&0b11 == 0b11 {
+        4
+    } else {
+        2
+    }
+}
 
 #[cfg(test)]
 mod tests {

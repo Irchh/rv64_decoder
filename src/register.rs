@@ -82,6 +82,16 @@ impl Display for Register {
     }
 }
 
+impl Register {
+    pub fn from_rvc(num: u8) -> Self {
+        if num <= 0b111 {
+            Self::from(num as usize + 8)
+        } else {
+            Zero
+        }
+    }
+}
+
 impl From<Register> for usize {
     fn from(r: Register) -> Self {
         r as usize

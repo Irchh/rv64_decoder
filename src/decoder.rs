@@ -2,6 +2,7 @@ use crate::instruction::Instruction;
 use crate::instruction::Instruction::*;
 use crate::optype::OpType;
 use crate::{CsrRegister, Register};
+use crate::compressed::decode_compressed;
 
 fn decode_load(full_opcode: u32) -> Result<Instruction, String> {
     match OpType::new_load(full_opcode) {
@@ -272,7 +273,7 @@ pub fn decode(full_opcode: u32) -> Result<Instruction, String> {
             }
         }
         _ => {
-            Err("TODO: Implement other ISAs".to_string())
+            decode_compressed(full_opcode as u16)
         }
     }
 }
