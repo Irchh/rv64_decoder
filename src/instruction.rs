@@ -79,6 +79,16 @@ pub enum Instruction {
     Jalr{rd: Register, rs1: Register, imm: i64},
     Jal{rd: Register, imm: i64},
 
+    Amoswapw {rd: Register, rs1: Register, rs2: Register, aq: bool, rl: bool},
+    Amoaddw {rd: Register, rs1: Register, rs2: Register, aq: bool, rl: bool},
+    Amoxorw {rd: Register, rs1: Register, rs2: Register, aq: bool, rl: bool},
+    Amoandw {rd: Register, rs1: Register, rs2: Register, aq: bool, rl: bool},
+    Amoorw {rd: Register, rs1: Register, rs2: Register, aq: bool, rl: bool},
+    Amominw {rd: Register, rs1: Register, rs2: Register, aq: bool, rl: bool},
+    Amomaxw {rd: Register, rs1: Register, rs2: Register, aq: bool, rl: bool},
+    Amominuw {rd: Register, rs1: Register, rs2: Register, aq: bool, rl: bool},
+    Amomaxuw {rd: Register, rs1: Register, rs2: Register, aq: bool, rl: bool},
+
     Ecall,
     Ebreak,
     Uret,
@@ -93,6 +103,31 @@ pub enum Instruction {
     Csrrci {rd: Register, csr: CsrRegister, imm: i64},
 
     FenceI,
+    Fence {pred: FenceFlags, succ: FenceFlags},
+}
+
+#[derive(Debug, Copy, Clone, PartialEq)]
+pub struct FenceFlags { i: bool, o: bool, r: bool, w: bool, }
+impl From<u8> for FenceFlags {
+    fn from(value: u8) -> Self {
+        Self {
+            i: (value&0b1000) > 0,
+            o: (value&0b0100) > 0,
+            r: (value&0b0010) > 0,
+            w: (value&0b0001) > 0,
+        }
+    }
+}
+
+impl Display for FenceFlags {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}{}{}{}",
+               if self.i {"i"} else {""},
+               if self.o {"o"} else {""},
+               if self.r {"r"} else {""},
+               if self.w {"w"} else {""},
+        )
+    }
 }
 
 struct Num(i64);
@@ -149,6 +184,17 @@ impl Display for Instruction {
                 }
             }
             Jal { rd, imm } => write!(f, "jal {}, {}", rd, Num(*imm)),
+
+            Amoswapw {rd, rs1, rs2, aq, rl} => write!(f, "amoswap.w {}, {}, ({}) (aq:{} rq:{})", rd, rs2, rs1, aq, rl),
+            Amoaddw {rd, rs1, rs2, aq, rl} => write!(f, "amoadd.w {}, {}, ({}) (aq:{} rq:{})", rd, rs2, rs1, aq, rl),
+            Amoxorw {rd, rs1, rs2, aq, rl} => write!(f, "amoxor.w {}, {}, ({}) (aq:{} rq:{})", rd, rs2, rs1, aq, rl),
+            Amoandw {rd, rs1, rs2, aq, rl} => write!(f, "amoand.w {}, {}, ({}) (aq:{} rq:{})", rd, rs2, rs1, aq, rl),
+            Amoorw {rd, rs1, rs2, aq, rl} => write!(f, "amoor.w {}, {}, ({}) (aq:{} rq:{})", rd, rs2, rs1, aq, rl),
+            Amominw {rd, rs1, rs2, aq, rl} => write!(f, "amomin.w {}, {}, ({}) (aq:{} rq:{})", rd, rs2, rs1, aq, rl),
+            Amomaxw {rd, rs1, rs2, aq, rl} => write!(f, "amomax.w {}, {}, ({}) (aq:{} rq:{})", rd, rs2, rs1, aq, rl),
+            Amominuw {rd, rs1, rs2, aq, rl} => write!(f, "amominu.w {}, {}, ({}) (aq:{} rq:{})", rd, rs2, rs1, aq, rl),
+            Amomaxuw {rd, rs1, rs2, aq, rl} => write!(f, "amomaxu.w {}, {}, ({}) (aq:{} rq:{})", rd, rs2, rs1, aq, rl),
+
             Ecall => write!(f, "ecall"),
             Ebreak => write!(f, "Ebreak"),
             Uret => write!(f, "uret"),
@@ -162,6 +208,7 @@ impl Display for Instruction {
             Csrrsi { rd, csr, imm } => write!(f, "csrrsi {}, {}, {}", rd, csr, Num(*imm)),
             Csrrci { rd, csr, imm } => write!(f, "csrrci {}, {}, {}", rd, csr, Num(*imm)),
             FenceI => write!(f, "fence.i"),
+            Fence { pred, succ } => write!(f, "fence {}, {}", pred, succ),
             _ => write!(f, "TODO: impl display for {:?}", self)
         };
         let _ = write!(f, "\x1B[0m");

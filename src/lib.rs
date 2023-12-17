@@ -117,4 +117,40 @@ mod tests {
             Ok(Instruction::FenceI)
         );
     }
+
+    #[test]
+    fn store() {
+        assert_eq!(
+            decode(0x0062B023),
+            Ok(Instruction::Sd {
+                rs1: Register::Temp0,
+                rs2: Register::Temp1,
+                imm: 0,
+            })
+        );
+        assert_eq!(
+            decode(0x0062A023),
+            Ok(Instruction::Sw {
+                rs1: Register::Temp0,
+                rs2: Register::Temp1,
+                imm: 0,
+            })
+        );
+        assert_eq!(
+            decode(0x00629023),
+            Ok(Instruction::Sh {
+                rs1: Register::Temp0,
+                rs2: Register::Temp1,
+                imm: 0,
+            })
+        );
+        assert_eq!(
+            decode(0x00628023),
+            Ok(Instruction::Sb {
+                rs1: Register::Temp0,
+                rs2: Register::Temp1,
+                imm: 0,
+            })
+        );
+    }
 }

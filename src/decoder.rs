@@ -1,7 +1,7 @@
-use crate::instruction::Instruction;
+use crate::instruction::{FenceFlags, Instruction};
 use crate::instruction::Instruction::*;
 use crate::optype::OpType;
-use crate::{CsrRegister, Register};
+use crate::Register;
 use crate::compressed::decode_compressed;
 
 fn decode_load(full_opcode: u32) -> Result<Instruction, String> {
@@ -30,13 +30,15 @@ fn decode_misc_mem(full_opcode: u32) -> Result<Instruction, String> {
             }
             match funct3 {
                 0b000 => {
-                    Err("Fence instruction not implemented".to_string())
+                    let succ = FenceFlags::from(((full_opcode >> 20) & 0b1111) as u8);
+                    let pred = FenceFlags::from(((full_opcode >> 24) & 0b1111) as u8);
+                    Ok(Instruction::Fence { pred, succ })
                 }
                 0b001 => {
                     if imm != 0 {
                         Err("MISC-MEM fence.i error".to_string())
                     } else {
-                        Ok(FenceI)
+                        Ok(Instruction::FenceI)
                     }
                 }
                 _ => Err(format!("Invalid MISC-MEM funct3: 0b{funct3:03b}")),
@@ -58,9 +60,9 @@ fn decode_op_imm(full_opcode: u32) -> Result<Instruction, String> {
                 0b111 => Instruction::Andi { rd, rs1, imm, },
                 0b001 => Instruction::Slli { rd, rs1, shamt: (imm & 0b11111) as u64 },
                 0b101 => {
-                    match imm&0b11111100000 {
-                        0b00000000000 => Instruction::Srli { rd, rs1, shamt: (imm & 0b11111) as u64, },
-                        0b01000000000 => Instruction::Srai { rd, rs1, shamt: (imm & 0b11111) as u64, },
+                    match imm&0b11111000000 {
+                        0b00000000000 => Instruction::Srli { rd, rs1, shamt: (imm & 0b111111) as u64, },
+                        0b01000000000 => Instruction::Srai { rd, rs1, shamt: (imm & 0b111111) as u64, },
                         _ => return Err(format!("Invalid immediate shift imm: 0b{imm:011b}"))
                     }
                 },
@@ -83,6 +85,43 @@ fn decode_op_imm_32(full_opcode: u32) -> Result<Instruction, String> {
         })
     } else {
         opt_inst
+    }
+}
+
+fn decode_store(full_opcode: u32) -> Result<Instruction, String> {
+    match OpType::new_s(full_opcode) {
+        OpType::S { rs1, rs2, funct3, imm } => {
+            match funct3 {
+                0b000 => Ok(Instruction::Sb { rs1, rs2, imm, }),
+                0b001 => Ok(Instruction::Sh { rs1, rs2, imm, }),
+                0b010 => Ok(Instruction::Sw { rs1, rs2, imm, }),
+                0b011 => Ok(Instruction::Sd { rs1, rs2, imm, }),
+                _ => return Err(format!("Invalid STORE funct3: 0b{funct3:03b}"))
+            }
+        }
+        _ => unreachable!()
+    }
+}
+
+fn decode_amo(full_opcode: u32) -> Result<Instruction, String> {
+    match OpType::new_r(full_opcode) {
+        OpType::R { rd, rs1, rs2, funct3, funct7 } => {
+            let funct5 = (funct7>>2)&0b11111;
+            let rl = funct7&1 == 1;
+            let aq = funct7&2 == 2;
+            match funct3 {
+                0b010 => {
+                    // AMO 32-bit W
+                    match funct5 {
+                        0b00000 => Ok(Amoaddw { rd, rs1, rs2, aq, rl, }),
+                        0b00001 => Ok(Amoswapw { rd, rs1, rs2, aq, rl, }),
+                        _ => Err(format!("Invalid AMO funct5: 0b{funct5:05b}"))
+                    }
+                }
+                _ => Err(format!("Invalid AMO funct3: 0b{funct3:03b}"))
+            }
+        }
+        _ => unreachable!(),
     }
 }
 
@@ -245,10 +284,10 @@ pub fn decode(full_opcode: u32) -> Result<Instruction, String> {
                 },
                 0b00110 => decode_op_imm_32(full_opcode),
                 0b00111 => Err("TODO: Implement uhhhhhhhhhhhhhhh 48b".to_string()),
-                0b01000 => Err("TODO: Implement STORE".to_string()),
+                0b01000 => decode_store(full_opcode),
                 0b01001 => Err("TODO: Implement STORE-FP".to_string()),
                 0b01010 => Err("TODO: Implement custom-1".to_string()),
-                0b01011 => Err("TODO: Implement AMO".to_string()),
+                0b01011 => decode_amo(full_opcode),
                 0b01100 => decode_op(full_opcode),
                 0b01101 => decode_lui(full_opcode),
                 0b01110 => decode_op_32(full_opcode),

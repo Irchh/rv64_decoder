@@ -19,13 +19,13 @@ impl COpType {
     }
     pub fn new_cr(full_opcode: u16) -> Self {
         let funct4 = ((full_opcode & 0xF000) >> 12) as u8;
-        let rd_rs1 = Register::from_rvc(((full_opcode >> 7) & 0x1F) as u8);
-        let rs2 = Register::from((((full_opcode >> 12) & 1) | ((full_opcode >> 7) & 0x1F)) as usize);
+        let rd_rs1 = Register::from(((full_opcode >> 7) & 0x1F) as usize);
+        let rs2 = Register::from(((full_opcode >> 2) & 0x1F) as usize);
         Self::CR { rd_rs1, rs2, funct4 }
     }
     pub fn new_ci(full_opcode: u16) -> Self {
         let funct3 = Self::funct3(full_opcode);
-        let rd_rs1 = Register::from_rvc(((full_opcode & 0x0F80) >> 7) as u8);
+        let rd_rs1 = Register::from(((full_opcode >> 7 ) & 0x1F) as usize);
         Self::CI { rd_rs1, funct3 }
     }
     pub fn new_css(full_opcode: u16) -> Self {
