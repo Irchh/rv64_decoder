@@ -1,9 +1,19 @@
 use crate::opcode::Opcodes::*;
 
-#[repr(u8)]
 pub enum Opcodes {
-    Lui = 0x37,
+    Lui,
     Unknown(u8),
+}
+
+impl TryFrom<Opcodes> for u8 {
+    type Error = ();
+
+    fn try_from(value: Opcodes) -> Result<Self, Self::Error> {
+        Ok(match value {
+            Lui => 0x37,
+            Unknown(u) => u,
+        })
+    }
 }
 
 impl TryFrom<u8> for Opcodes {

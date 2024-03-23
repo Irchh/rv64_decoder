@@ -66,52 +66,56 @@ mod tests {
     #[test]
     fn beq() {
         assert_eq!(
-            decode(0x00b50663),
-            Ok(Instruction::Beq { rs1: Register::ArgumentRetval0, rs2: Register::ArgumentRetval1, imm: 12 })
+            decode(0xd4b50663),
+            Ok(Instruction::Beq { rs1: Register::ArgumentRetval0, rs2: Register::ArgumentRetval1, imm: -2740 })
         );
     }
 
     #[test]
     fn bge() {
         assert_eq!(
-            decode(0x00b55263),
-            Ok(Instruction::Bge { rs1: Register::ArgumentRetval0, rs2: Register::ArgumentRetval1, imm: 4 })
+            decode(0xd4b55663),
+            Ok(Instruction::Bge { rs1: Register::ArgumentRetval0, rs2: Register::ArgumentRetval1, imm: -2740 })
         );
     }
 
     #[test]
     fn bgeu() {
         assert_eq!(
-            decode(0x00b57263),
-            Ok(Instruction::Bgeu { rs1: Register::ArgumentRetval0, rs2: Register::ArgumentRetval1, imm: 4 })
+            decode(0xd4b57663),
+            Ok(Instruction::Bgeu { rs1: Register::ArgumentRetval0, rs2: Register::ArgumentRetval1, imm: -2740 })
         );
     }
 
     #[test]
     fn blt() {
         assert_eq!(
-            decode(0x00b54263),
-            Ok(Instruction::Blt { rs1: Register::ArgumentRetval0, rs2: Register::ArgumentRetval1, imm: 4 })
+            decode(0xd4b54663),
+            Ok(Instruction::Blt { rs1: Register::ArgumentRetval0, rs2: Register::ArgumentRetval1, imm: -2740 })
         );
     }
 
     #[test]
     fn bltu() {
         assert_eq!(
-            decode(0x00b56263),
-            Ok(Instruction::Bltu { rs1: Register::ArgumentRetval0, rs2: Register::ArgumentRetval1, imm: 4 })
+            decode(0xd4b56663),
+            Ok(Instruction::Bltu { rs1: Register::ArgumentRetval0, rs2: Register::ArgumentRetval1, imm: -2740 })
         );
     }
 
     #[test]
     fn bne() {
         assert_eq!(
-            decode(0x00b51263),
-            Ok(Instruction::Bne { rs1: Register::ArgumentRetval0, rs2: Register::ArgumentRetval1, imm: 4 })
+            decode(0xd4b51663),
+            Ok(Instruction::Bne { rs1: Register::ArgumentRetval0, rs2: Register::ArgumentRetval1, imm: -2740 })
         );
     }
     #[test]
     fn fencei() {
+        assert_eq!(
+            decode(0xFFF0100f),
+            Ok(Instruction::FenceI)
+        );
         assert_eq!(
             decode(0x0000100f),
             Ok(Instruction::FenceI)
@@ -121,35 +125,35 @@ mod tests {
     #[test]
     fn store() {
         assert_eq!(
-            decode(0x0062B023),
+            decode(0xAA62BAA3),
             Ok(Instruction::Sd {
                 rs1: Register::Temp0,
                 rs2: Register::Temp1,
-                imm: 0,
+                imm: -1355,
             })
         );
         assert_eq!(
-            decode(0x0062A023),
+            decode(0xAA62AAA3),
             Ok(Instruction::Sw {
                 rs1: Register::Temp0,
                 rs2: Register::Temp1,
-                imm: 0,
+                imm: -1355,
             })
         );
         assert_eq!(
-            decode(0x00629023),
+            decode(0xAA629AA3),
             Ok(Instruction::Sh {
                 rs1: Register::Temp0,
                 rs2: Register::Temp1,
-                imm: 0,
+                imm: -1355,
             })
         );
         assert_eq!(
-            decode(0x00628023),
+            decode(0xAA628AA3),
             Ok(Instruction::Sb {
                 rs1: Register::Temp0,
                 rs2: Register::Temp1,
-                imm: 0,
+                imm: -1355,
             })
         );
     }
