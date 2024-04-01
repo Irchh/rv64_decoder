@@ -35,8 +35,27 @@ fn decode_sd(full_opcode: u16) -> Result<Instruction, String> {
 fn decode_addi(full_opcode: u16) -> Result<Instruction, String> {
     match COpType::new_ci(full_opcode) {
         COpType::CI { rd_rs1, .. } => {
+            if rd_rs1 == Register::Zero {
+                return Err("Dest for c.addi cannot be x0!".to_string());
+            }
             let imm = ((full_opcode as i16 >> 2) & 0b11111 | ((full_opcode << 3) as i16 >> 10)) as i64;
-            Ok(Instruction::Addi { rd: rd_rs1, rs1: rd_rs1, imm, })
+            if imm == 0 {
+                Err("Immediate for c.addi cannot be 0!".to_string())
+            } else {
+                Ok(Instruction::Addi { rd: rd_rs1, rs1: rd_rs1, imm, })
+            }
+        }
+        _ => unreachable!(),
+    }
+}
+fn decode_addiw(full_opcode: u16) -> Result<Instruction, String> {
+    match COpType::new_ci(full_opcode) {
+        COpType::CI { rd_rs1, .. } => {
+            if rd_rs1 == Register::Zero {
+                return Err("Dest for c.addi cannot be x0!".to_string());
+            }
+            let imm = ((full_opcode as i16 >> 2) & 0b11111 | ((full_opcode << 3) as i16 >> 10)) as i64;
+            Ok(Instruction::Addiw { rd: rd_rs1, rs1: rd_rs1, imm, })
         }
         _ => unreachable!(),
     }
@@ -139,6 +158,85 @@ fn decode_j(full_opcode: u16) -> Result<Instruction, String> {
     Ok(Instruction::Jal { rd: Register::Zero, imm })
 }
 
+fn decode_beqz_bnez(full_opcode: u16) -> Result<Instruction, String> {
+    match COpType::new_cb(full_opcode) {
+        COpType::CB { rs1, funct3} => {
+            let imm2_1 = (full_opcode>>2) &0b000000110;
+            let imm4_3 = (full_opcode>>7) &0b000011000;
+            let imm5 = (full_opcode<<3)   &0b000100000;
+            let imm7_6 = (full_opcode<<1) &0b011000000;
+            let imm8 = (full_opcode>>4)   &0b100000000;
+            let sign_ext = if imm8 > 0 {0xFE00} else {0};
+            let imm = (sign_ext | imm8 | imm7_6 | imm5 | imm4_3 | imm2_1) as i16 as i64;
+            match funct3 {
+                0b110 => Ok(Instruction::Beq {
+                    rs1,
+                    rs2: Register::Zero,
+                    imm,
+                }),
+                0b111 => Ok(Instruction::Bne {
+                    rs1,
+                    rs2: Register::Zero,
+                    imm,
+                }),
+                _ => unreachable!()
+            }
+        }
+        _ => unreachable!()
+    }
+}
+
+fn decode_sdsp(full_opcode: u16) -> Result<Instruction, String> {
+    match COpType::new_css(full_opcode) {
+        COpType::CSS { rs2, .. } => {
+            let imm7_6 = (full_opcode>>1) &0b11000000;
+            let imm5_3 = (full_opcode>>7) &0b00111000;
+            let imm = (imm7_6 | imm5_3) as i64;
+            Ok(Instruction::Sd {
+                rs1: Register::StackPointer,
+                rs2,
+                imm,
+            })
+        }
+        _ => unreachable!()
+    }
+}
+
+fn decode_ldsp(full_opcode: u16) -> Result<Instruction, String> {
+    match COpType::new_ci(full_opcode) {
+        COpType::CI { rd_rs1, ..} => {
+            let imm4_3 = (full_opcode>>2) &0b000011000;
+            let imm5 = (full_opcode>>7)   &0b000100000;
+            let imm8_6 = (full_opcode<<4) &0b111000000;
+            let imm = (imm8_6 | imm5 | imm4_3) as i64;
+            Ok(Instruction::Ld {
+                rd: rd_rs1,
+                rs1: Register::StackPointer,
+                imm,
+            })
+        }
+        _ => unreachable!()
+    }
+}
+
+fn decode_math(full_opcode: u16) -> Result<Instruction, String> {
+    match COpType::new_ca(full_opcode) {
+        COpType::CA { rd_rs1, rs2, funct6, funct2 } => {
+            match (funct6<<2) | funct2 {
+                0b10001110 => {
+                    Ok(Instruction::Or {
+                        rd: rd_rs1,
+                        rs1: rd_rs1,
+                        rs2,
+                    })
+                }
+                funct8 => unimplemented!("Unimplemented compressed math funct6+2: 0b{:08b}", funct8)
+            }
+        }
+        _ => unreachable!()
+    }
+}
+
 // TODO: Should this be pub(crate)?
 pub(crate) fn decode_compressed(full_opcode: u16) -> Result<Instruction, String> {
     let funct3 = (full_opcode & 0xE000) >> 11;
@@ -146,10 +244,15 @@ pub(crate) fn decode_compressed(full_opcode: u16) -> Result<Instruction, String>
         0b00000 => decode_addi4spn(full_opcode),
         0b11100 => decode_sd(full_opcode),
         0b00001 => decode_addi(full_opcode),
+        0b00101 => decode_addiw(full_opcode),
         0b01001 | 0b01101 => decode_li_lui_addi16spn(full_opcode),
         0b01100 => decode_ld(full_opcode),
         0b10010 => decode_jr(full_opcode),
         0b10101 => decode_j(full_opcode),
+        0b11001 | 0b11101 => decode_beqz_bnez(full_opcode),
+        0b11110 => decode_sdsp(full_opcode),
+        0b01110 => decode_ldsp(full_opcode),
+        0b10001 => decode_math(full_opcode),
         op => Err(format!("TODO: Implement compressed opcode 0b{op:05b}"))
     }
 }

@@ -1,5 +1,4 @@
 use crate::instruction::{FenceFlags, Instruction};
-use crate::instruction::Instruction::*;
 use crate::optype::OpType;
 use crate::Register;
 use crate::compressed::decode_compressed;
@@ -74,9 +73,24 @@ fn decode_op_imm_32(full_opcode: u32) -> Result<Instruction, String> {
     if opt_inst.is_ok() {
         Ok(match opt_inst.unwrap() {
             Instruction::Addi { rd, rs1, imm } => Instruction::Addiw { rd, rs1, imm, },
-            Instruction::Slli { rd, rs1, shamt } => Instruction::Slliw { rd, rs1, shamt, },
-            Instruction::Srli { rd, rs1, shamt } => Instruction::Srliw { rd, rs1, shamt, },
-            Instruction::Srai { rd, rs1, shamt } => Instruction::Sraiw { rd, rs1, shamt, },
+            Instruction::Slli { rd, rs1, shamt } => {
+                if shamt&0b100000 != 0 {
+                    return Err("Reserved slliw shamt[5] == 1".to_string());
+                }
+                Instruction::Slliw { rd, rs1, shamt }
+            }
+            Instruction::Srli { rd, rs1, shamt } => {
+                if shamt&0b100000 != 0 {
+                    return Err("Reserved srliw shamt[5] == 1".to_string());
+                }
+                Instruction::Srliw { rd, rs1, shamt }
+            }
+            Instruction::Srai { rd, rs1, shamt } => {
+                if shamt&0b100000 != 0 {
+                    return Err("Reserved sraiw shamt[5] == 1".to_string());
+                }
+                Instruction::Sraiw { rd, rs1, shamt }
+            }
             _ => return Err("Invalid OP-IMM-32".to_string()),
         })
     } else {
@@ -109,8 +123,8 @@ fn decode_amo(full_opcode: u32) -> Result<Instruction, String> {
                 0b010 => {
                     // AMO 32-bit W
                     match funct5 {
-                        0b00000 => Ok(Amoaddw { rd, rs1, rs2, aq, rl, }),
-                        0b00001 => Ok(Amoswapw { rd, rs1, rs2, aq, rl, }),
+                        0b00000 => Ok(Instruction::Amoaddw { rd, rs1, rs2, aq, rl, }),
+                        0b00001 => Ok(Instruction::Amoswapw { rd, rs1, rs2, aq, rl, }),
                         _ => Err(format!("Invalid AMO funct5: 0b{funct5:05b}"))
                     }
                 }

@@ -8,6 +8,7 @@ pub(crate) enum COpType {
     CIW { rd: Register, funct3: u8 },
     CL { rd: Register, rs1: Register, funct3: u8 },
     CS { rs1: Register, rs2: Register, funct3: u8 },
+    CA { rd_rs1: Register, rs2: Register, funct6: u8, funct2: u8 },
     CB { rs1: Register, funct3: u8 },
     CJ { funct3: u8 },
 }
@@ -15,7 +16,7 @@ pub(crate) enum COpType {
 
 impl COpType {
     fn funct3(full_opcode: u16) -> u8 {
-        ((full_opcode & 0xE000) >> 13) as u8
+        ((full_opcode >> 13) & 0x7) as u8
     }
     pub fn new_cr(full_opcode: u16) -> Self {
         let funct4 = ((full_opcode & 0xF000) >> 12) as u8;
@@ -49,6 +50,18 @@ impl COpType {
         let rs1 = Register::from_rvc(((full_opcode >> 7) & 0b111) as u8);
         let rs2 = Register::from_rvc(((full_opcode >> 2) & 0b111) as u8);
         Self::CS { rs1, rs2, funct3 }
+    }
+    pub fn new_ca(full_opcode: u16) -> Self {
+        let funct6 = ((full_opcode >> 10) & 0x3F) as u8;
+        let funct2 = ((full_opcode >> 5) & 0b11) as u8;
+        let rd_rs1 = Register::from_rvc(((full_opcode >> 7) & 0b111) as u8);
+        let rs2 = Register::from_rvc(((full_opcode >> 2) & 0b111) as u8);
+        Self::CA {
+            rd_rs1,
+            rs2,
+            funct6,
+            funct2,
+        }
     }
     pub fn new_cb(full_opcode: u16) -> Self {
         let funct3 = Self::funct3(full_opcode);
